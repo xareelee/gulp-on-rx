@@ -1,0 +1,29 @@
+{
+  "name": "gulp-on-rx",
+  "version": "0.1.1",
+  "description": "Run gulp on Rx",
+  "author": "Xaree Lee <xareelee@gmail.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/xareelee/gulp-on-rx.git"
+  },
+  "keywords": [
+    "fs",
+    "watch",
+    "glob",
+    "rxjs"
+  ],
+  "main": "src/index.js",
+  "scripts": {},
+  "engines": {
+    "node": ">=4.0"
+  },
+  "dependencies": {
+    "chokidar": "^1.6.0",
+    "glob-parent": "^3.0.0",
+    "path": "^0.12.7",
+    "to-absolute-glob": "^1.1.0",
+    "vinyl-fs": "^2.4.3"
+  }
+}
