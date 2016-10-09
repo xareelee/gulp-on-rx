@@ -1,5 +1,7 @@
 # Gulp-on-Rx
 
+[![npm version](https://img.shields.io/npm/v/gulp-on-rx.svg?maxAge=86400)](https://www.npmjs.com/package/gulp-on-rx)
+
 [Gulp](https://github.com/gulpjs/gulp) is a streaming build system based on Node streams, and [**gulp-on-rx**](https://github.com/xareelee/gulp-on-rx) makes the streaming build system based on [RxJS](https://github.com/ReactiveX/rxjs).
 
 ## Why Gulp-on-Rx
