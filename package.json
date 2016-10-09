@@ -9,10 +9,12 @@
     "url": "https://github.com/xareelee/gulp-on-rx.git"
   },
   "keywords": [
+    "gulp",
     "fs",
     "watch",
     "glob",
-    "rxjs"
+    "rxjs",
+    "rx"
   ],
   "main": "src/index.js",
   "scripts": {},
