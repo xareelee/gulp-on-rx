@@ -117,7 +117,6 @@ function use(Rx) {
       },
       () => {
         // not send complete directly; just tell stream to end.
-        console.log('complete');
         stream.end();
       }
     );
