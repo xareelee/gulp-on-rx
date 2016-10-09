@@ -5,6 +5,23 @@ function apply(Rx) {
   if (applied[Rx]) return applied[Rx];
   const func = applied[Rx] = use(Rx);
   Rx.Observable.prototype.pipe = func.pipe;
+  
+  // To support RxJS 4
+  const proto = Rx.Subject.prototype;
+  var rxjs4Supported = !!proto.onNext && !!proto.onError && !!proto.onCompleted;
+  var rxjs5Supported = !!proto.next && !!proto.error && !!proto.complete;
+  if (!rxjs5Supported) {
+    if (rxjs4Supported) {
+      // We write code on RxJS 5. Make aliases for RxJS 4.
+      proto.next = proto.onNext;
+      proto.error = proto.onError;
+      proto.complete = proto.onCompleted;
+    } else {
+      const err = new Error(`Unknown Rx version.`);
+      throw err;
+    }
+  }
+  
   return func;
 }
 
