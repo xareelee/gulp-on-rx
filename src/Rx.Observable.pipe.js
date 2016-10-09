@@ -5,29 +5,18 @@ function apply(Rx) {
   if (applied[Rx]) return applied[Rx];
   const func = applied[Rx] = use(Rx);
   Rx.Observable.prototype.pipe = func.pipe;
-  
-  // To support RxJS 4
-  const proto = Rx.Subject.prototype;
-  var rxjs4Supported = !!proto.onNext && !!proto.onError && !!proto.onCompleted;
-  var rxjs5Supported = !!proto.next && !!proto.error && !!proto.complete;
-  if (!rxjs5Supported) {
-    if (rxjs4Supported) {
-      // We write code on RxJS 5. Make aliases for RxJS 4.
-      proto.next = proto.onNext;
-      proto.error = proto.onError;
-      proto.complete = proto.onCompleted;
-    } else {
-      const err = new Error(`Unknown Rx version.`);
-      throw err;
-    }
-  }
-  
   return func;
 }
 
 
 // Use the specific library entity from outside
 function use(Rx) {
+  
+  const proto = Rx.Subject.prototype;
+  var rxjs5Supported = !!proto.next && !!proto.error && !!proto.complete;
+  const callOnNext = (rxjs5Supported) ? "next" : "onNext";
+  const callOnError = (rxjs5Supported) ? "error" : "onError";
+  const callOnCompleted = (rxjs5Supported) ? "complete" : "onCompleted";
   
   return { pipe };
   
@@ -149,17 +138,17 @@ function use(Rx) {
     };
     
     function subjectSendNext(next){
-      subject$.next(next);
+      subject$[callOnNext](next);
     }
     
     function subjectSendError(err) {
       cleanupListener(stream, streamEventListeners);
-      subject$.error(err);
+      subject$[callOnError](err);
     }
     
     function subjectSendComplete() {
       cleanupListener(stream, streamEventListeners);
-      subject$.complete();
+      subject$[callOnCompleted]();
     }
   }
 

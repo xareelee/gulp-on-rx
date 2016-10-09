@@ -16,6 +16,13 @@ function apply(Rx) {
 // Use the specific library entity from outside
 function use(Rx) {
   
+  // To support both RxJS 4 and RxJS 5
+  const proto = Rx.Subject.prototype;
+  var rxjs5Supported = !!proto.next && !!proto.error && !!proto.complete;
+  const callOnNext = (rxjs5Supported) ? "next" : "onNext";
+  const callOnError = (rxjs5Supported) ? "error" : "onError";
+  const callOnCompleted = (rxjs5Supported) ? "complete" : "onCompleted";
+
   return { watch, onAll, onInitial, onChange };
   
   /*
@@ -102,9 +109,9 @@ function use(Rx) {
     const opts = Object.assign({}, options, overridingOpts);
     
     return watch(globs, opts, (subscriber, wrapFileEvent) => ({
-      all: (event, path) => subscriber.next(wrapFileEvent(event, path)),
-      ready: () => subscriber.next(wrapFileEvent('ready')),   // send ready as next
-      error: (error) => subscriber.error(error)
+      all: (event, path) => subscriber[callOnNext](wrapFileEvent(event, path)),
+      ready: () => subscriber[callOnNext](wrapFileEvent('ready')),   // send ready as next
+      error: (error) => subscriber[callOnError](error)
     }));  
   }
 
@@ -129,9 +136,9 @@ function use(Rx) {
     const opts = Object.assign({}, options, overridingOpts);
     
     return watch(globs, opts, (subscriber, wrapFileEvent) => ({
-      all: (event, path) => subscriber.next(wrapFileEvent(event, path)),
-      ready: () => subscriber.complete(),       // send ready as complete
-      error: (error) => subscriber.error(error)
+      all: (event, path) => subscriber[callOnNext](wrapFileEvent(event, path)),
+      ready: () => subscriber[callOnCompleted](),       // send ready as complete
+      error: (error) => subscriber[callOnError](error)
     }));
   }
 
@@ -155,8 +162,8 @@ function use(Rx) {
     const opts = Object.assign({}, options, overridingOpts);
     
     return watch(globs, opts, (subscriber, wrapFileEvent) => ({
-      all: (event, path) => subscriber.next(wrapFileEvent(event, path)),
-      error: (error) => subscriber.error(error)       // don't send ready
+      all: (event, path) => subscriber[callOnNext](wrapFileEvent(event, path)),
+      error: (error) => subscriber[callOnError](error)       // don't send ready
     }));
   };
 }
