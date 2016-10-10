@@ -3,15 +3,6 @@ const chokidar = require('chokidar');
 const globParent = require('glob-parent');
 const resolveGlob = require('to-absolute-glob');
 
-// Apply functions to the prototype
-const applied = {};
-function apply(Rx) {
-  if (applied[Rx]) return applied[Rx];
-  const func = applied[Rx] = use(Rx);
-  Rx.Observable.fsWatch = func;
-  return func;
-}
-
 
 // Use the specific library entity from outside
 function use(Rx) {
@@ -170,4 +161,4 @@ function use(Rx) {
 
 
 
-module.exports = { use, apply };
+module.exports = { use };
