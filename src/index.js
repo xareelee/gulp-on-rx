@@ -1,6 +1,6 @@
 function use(Rx) {
   const vinylify = require('./Rx.Observable.vinylify.js').use(Rx);
-  const hook = require('./Rx.Observable.pipe.js').use(Rx);
+  const hook = require('./Rx.Observable.hook.js').use(Rx);
   const fsWatch = require('./FSWatchRxify.js').use(Rx);
   return Object.assign({}, vinylify, hook, fsWatch);
 }
