@@ -88,8 +88,8 @@ function use(Rx) {
       },
       
       // readable events
-      data: (chuck) => {
-        subjectSendNext(subject$, chuck);
+      data: (chunk) => {
+        subjectSendNext(subject$, chunk);
       },
       end: () => {
         subjectSendComplete(subject$, cleanup);
