@@ -5,6 +5,8 @@
 
 [Gulp](https://github.com/gulpjs/gulp) is a streaming build system based on Node streams, and [**gulp-on-rx**](https://github.com/xareelee/gulp-on-rx) makes the streaming build system based on [RxJS](https://github.com/ReactiveX/rxjs).
 
+> Currently, **gulp-on-rx** supports both RxJS 4 and RxJS 5.
+
 ## Why Gulp-on-Rx
 
 * `gulp.src()` will only watch the initial files and `gulp.watch()` will *run a whole gulp task* when detecting a file changed, which is inefficient. **Gulp-on-Rx** allows you to watch **the initial files and/or the following changes** to pipe file events into the same stream line. 
