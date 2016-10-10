@@ -50,6 +50,19 @@ function use(Rx) {
   // Export functions //
   // ---------------- //
   
+  // Turn into cold signal; only triggered when it is subscribed.
+  function pipe(stream, pipeOpts) {
+    const source = this;
+    return Rx.Observable.defer(() => {
+      return _pipe.call(source, stream, pipeOpts);
+    });
+  };
+  
+  
+  // ----------------- //
+  // Private functions //
+  // ----------------- //
+  
   // # How this method works (Rx.Observable -> Node.Stream -> Rx.Observable):
   // 
   // 1. Send the next value to the node stream via `stream.write()` when this 
@@ -79,12 +92,12 @@ function use(Rx) {
         subjectSendNext(subject$, chuck);
       },
       end: () => {
-        subjectSendComplete(subject$);
+        subjectSendComplete(subject$, cleanup);
       },
       
       // both writable and readable events
       error: (err) => {
-        subjectSendError(subject$, err);
+        subjectSendError(subject$, err, cleanup);
       },
       close: (...e) => {
         // ???: unknown/untested behavior
@@ -92,6 +105,11 @@ function use(Rx) {
         disposable.unsubscribe();
       }
     };
+    
+    const cleanup = () => {
+      cleanupListener(stream, streamEventListeners);
+    };
+    
     setupListener(stream, streamEventListeners);
     
     const disposable = source$.subscribe(
@@ -99,7 +117,7 @@ function use(Rx) {
         !stream.write(next) /* && source$.pause() // for pausableBuffered source$ */;
       },
       (err) => {
-        subjectSendError(subject$, err);
+        subjectSendError(subject$, err, cleanup);
       },
       () => {
         // not send complete directly; just tell stream to end.
@@ -109,14 +127,6 @@ function use(Rx) {
     
     return subject$;
   };
-
-
-  // Turn into cold signal; only triggered when it is subscribed.
-  function pipe(stream, pipeOpts) {
-    const source = this;
-    return Rx.Observable.defer(() => {
-      return _pipe.call(source, stream, pipeOpts);
-    });
   };
   
   // -------------- //
@@ -139,13 +149,13 @@ function use(Rx) {
     subject[callOnNext](next);
   };
   
-  function subjectSendError(subject, err) {
-    cleanupListener(stream, streamEventListeners);
+  function subjectSendError(subject, err, cleanup) {
+    cleanup();
     subject[callOnError](err);
   };
   
-  function subjectSendComplete(subject) {
-    cleanupListener(stream, streamEventListeners);
+  function subjectSendComplete(subject, cleanup) {
+    cleanup();
     subject[callOnCompleted]();
   };
 }
