@@ -48,6 +48,29 @@ gulp.task('scripts', () => {
 });
 ```
 
+or using `.hook()`:
+
+```js
+var Rx = require('rxjs');
+var fsWatch = require('gulp-on-rx').apply(Rx);
+
+gulp.task('scripts', () => {
+  return fsWatch.onInitial('client/js/**/*.coffee').vinylify()  // Rx.Observable
+    .hook(stream => { return stream   // Using hook block for stream pipeline
+      .pipe(sourcemaps.init())          // Node.Stream pipeline
+        .pipe(coffee())                 // Node.Stream pipeline
+        .pipe(uglify())                 // Node.Stream pipeline
+        .pipe(concat('all.min.js'))     // Node.Stream pipeline
+      .pipe(sourcemaps.write())         // Node.Stream pipeline
+      .pipe(gulp.dest('build/js'));     // Node.Stream pipeline
+    })                                // Transform into Rx.Observable
+    .subscribe();                     // Start running
+});
+```
+
+
+
+
 From gulp to gulp-on-rx:
 
 * Import gulp-on-rx by using `require('gulp-on-rx').apply(Rx)` to add `.vinylify()` and `.pipe()` to the prototype of the target `Rx` entity.
@@ -108,10 +131,41 @@ The parameter `options` will be passed to [vinyl-fs](https://github.com/gulpjs/v
 **Note: `vinylify()` uses functions in vinyl-fs which are async.**
 
 
+## `Rx.Observable.prototype.hook(pipelinFn)`
+
+Use a callback to compose a node stream pipeline. The method `.hook` will push `Rx.Observable` values into the node stream pipeline which the block returns, and listen and send the results to downstream observables.
+
+```
+fsWatch.onInitial('client/js/**/*.coffee').vinylify()  // Rx.Observable
+  .hook(stream => { // Compose a node stream pipeline
+    return stream
+      .pipe(...)    // Use Node.Stream's pipe()
+      .pipe(...)    // Use Node.Stream's pipe()
+      .pipe(...)    // Use Node.Stream's pipe()
+  })                // `hook()` returns a Rx.Observable for the pipeline
+  .pipe(...)        // Use Rx.Observable's pipe()
+  .pipe(...)        // Use Rx.Observable's pipe()
+  ...
+```
 
 ## `Rx.Observable.prototype.pipe(stream)`
 
-Pipe `Rx.Observable` events into a node stream which should be both `Writable` and `Readable`, and send the results to downstream `Rx.Observable`.
+Convenient method to hook just one node stream.
+
+```
+fsWatch.onInitial('client/js/**/*.coffee').vinylify()  // Rx.Observable
+  .pipe(coffee())  // Use Rx.Observable's pipe()
+  ...
+```
+
+same as
+
+```
+fsWatch.onInitial('client/js/**/*.coffee').vinylify()  // Rx.Observable
+  .hook(stream => stream.pipe(coffee()))  // Use Rx.Observable's hook()
+  ...
+```
+
 
 
 
