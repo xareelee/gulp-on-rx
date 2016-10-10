@@ -1,3 +1,5 @@
+const Stream = require('stream');
+
 // # Dev Note
 //
 // ## Mimic Node stream's `.pipe()` to pipe the stream I/O.
@@ -44,7 +46,7 @@ function use(Rx) {
   const callOnError = (rxjs5Supported) ? "error" : "onError";
   const callOnCompleted = (rxjs5Supported) ? "complete" : "onCompleted";
   
-  return { pipe };
+  return { pipe, hook };
   
   // ---------------- //
   // Export functions //
@@ -54,10 +56,18 @@ function use(Rx) {
   function pipe(stream, pipeOpts) {
     const source = this;
     return Rx.Observable.defer(() => {
-      return _pipe.call(source, stream, pipeOpts);
+      const hookFn = (source) => source.pipe(stream);
+      return _hook.call(source, hookFn, pipeOpts);
     });
   };
   
+  // Turn into cold signal; only triggered when it is subscribed.
+  function hook(stream, hookOpts) {
+    const source = this;
+    return Rx.Observable.defer(() => {
+      return _hook.call(source, stream, hookOpts);
+    });
+  };
   
   // ----------------- //
   // Private functions //
@@ -67,68 +77,77 @@ function use(Rx) {
   // 
   // 1. Send the next value to the node stream via `stream.write()` when this 
   //    Rx.Observable receive a next value.
-  // 2. Listen any callback from the node stream which we pipe to; on specific
+  // 2. Listen any callback from the node stream which we hook in; on specific
   //    callbacks, we transform the events into RxJS world through Rx.Subject;
   // 3. Any subscriber of this returned Rx.Observable will subscribe to the 
   //    Rx.Subject.
-  function _pipe(stream, pipeOpts) {
+  function _hook(hookFn, hookOpts) {
     
-    const source$ = this; // should call `.pausableBuffered()`;
+    const source$ = this;
     const subject$ = new Rx.Subject();
     
-    // Build the stream line (Rx.Observable -> Node.Stream -> Rx.Observable)
-    // Possible stream events:
-    // @see https://nodejs.org/api/stream.html#stream_event_pipe
-    const streamEventListeners = {
-      // writable events
+    const writableHook = new Stream.Transform(hookOpts || {objectMode: true});
+    writableHook._transform = (chunk, encoding, callback) => { callback(null, chunk); };
+    const readableHook = hookFn(writableHook);
+    
+    const writableListeners = {
       drain: () => {
         // ???: unknown/untested behavior
-        debug('> pipe(w).onDrain > not handled');
+        debug('> hook(w).onDrain > not handled');
         // source$.resume(); // for pausableBuffered source$
       },
-      
-      // readable events
-      data: (chunk) => {
-        subjectSendNext(subject$, chunk);
-      },
-      end: () => {
-        subjectSendComplete(subject$, cleanup);
-      },
-      
-      // both writable and readable events
       error: (err) => {
         subjectSendError(subject$, err, cleanup);
       },
       close: (...e) => {
         // ???: unknown/untested behavior
-        debug('> pipe(B).close > not handled', ...e);
+        debug('> hook(B).close > not handled', ...e);
+        disposable.unsubscribe();
+      }
+    };
+    
+    const readableListeners = {
+      data: (chunk) => {
+        subjectSendNext(subject$, chunk);
+      },
+      end: () => {
+        subjectSendComplete(subject$, cleanup);
+      },      
+      error: (err) => {
+        subjectSendError(subject$, err, cleanup);
+      },
+      close: (...e) => {
+        // ???: unknown/untested behavior
+        debug('> hook(B).close > not handled', ...e);
         disposable.unsubscribe();
       }
     };
     
     const cleanup = () => {
-      cleanupListener(stream, streamEventListeners);
+      cleanupListener(writableHook, writableListeners);
+      cleanupListener(readableHook, readableListeners);
     };
     
-    setupListener(stream, streamEventListeners);
+    setupListener(writableHook, writableListeners);
+    setupListener(readableHook, readableListeners);
     
     const disposable = source$.subscribe(
       (next) => {
-        !stream.write(next) /* && source$.pause() // for pausableBuffered source$ */;
+        !writableHook.write(next) /* && source$.pause() // for pausableBuffered source$ */;
       },
       (err) => {
         subjectSendError(subject$, err, cleanup);
       },
       () => {
         // not send complete directly; just tell stream to end.
-        stream.end();
+        writableHook.end();
       }
     );
     
     return subject$;
   };
-  };
   
+    
   // -------------- //
   // Help functions //
   // -------------- //
