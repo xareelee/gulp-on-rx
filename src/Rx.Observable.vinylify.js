@@ -134,14 +134,14 @@ function use(Rx) {
       // Don't pass `read` option on to through2
       const read = extract(options, "read");
     
-      let vinyl$ = source.pipe(wrapWithVinylFile(options));
+      let vinyl$ = source.hook(wrapWithVinylFile(options));
       
       if (options.since != null) {
-        vinyl$ = vinyl$.pipe(filterSince(options.since));
+        vinyl$ = vinyl$.hook(filterSince(options.since));
       }
       
       if (read) {
-        vinyl$ = vinyl$.pipe(getContents(options));
+        vinyl$ = vinyl$.hook(getContents(options));
       }
       return vinyl$;
     }

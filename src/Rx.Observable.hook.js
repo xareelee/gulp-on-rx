@@ -2,11 +2,11 @@ const Stream = require('stream');
 
 // # Dev Note
 //
-// ## Mimic Node stream's `.pipe()` to pipe the stream I/O.
+// ## Mimic Node stream's `.pipe()` to hook the stream I/O.
 // 
 // Node stream's `.pipe()` is implemented in `Readable.prototype.pipe()`.
 // 
-// The practical approach to pipe a stream is not to implement a Rx's pipe 
+// The practical approach to hook a stream is not to implement a Rx's hook 
 // function like what `Readable.prototype.pipe()` does. Just transform the Rx
 // observable into a writable Node stream, then pipe into the dest stream, and
 // observe the events of the dest stream.
@@ -46,26 +46,19 @@ function use(Rx) {
   const callOnError = (rxjs5Supported) ? "error" : "onError";
   const callOnCompleted = (rxjs5Supported) ? "complete" : "onCompleted";
   
-  return { pipe, hook };
+  return { hook };
   
   // ---------------- //
   // Export functions //
   // ---------------- //
   
   // Turn into cold signal; only triggered when it is subscribed.
-  function pipe(stream, pipeOpts) {
-    const source = this;
-    return Rx.Observable.defer(() => {
-      const hookFn = (source) => source.pipe(stream);
-      return _hook.call(source, hookFn, pipeOpts);
-    });
-  };
-  
-  // Turn into cold signal; only triggered when it is subscribed.
   function hook(stream, hookOpts) {
     const source = this;
+    const streamBuild = (stream instanceof Stream) ? ((x) => x.pipe(stream)) : stream;
+    if (!(streamBuild instanceof Function)) throw new Error(`should be a stream or function`);
     return Rx.Observable.defer(() => {
-      return _hook.call(source, stream, hookOpts);
+      return _hook.call(source, streamBuild, hookOpts);
     });
   };
   

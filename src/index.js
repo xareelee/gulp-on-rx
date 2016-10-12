@@ -18,7 +18,6 @@ function apply(Rx) {
   Rx.Observable.fsWatch.onInitial = func.onInitial;
   Rx.Observable.fsWatch.onChange = func.onChange;
   Rx.Observable.prototype.hook = func.hook;
-  Rx.Observable.prototype.pipe = func.pipe;
   Rx.Observable.prototype.vinylify = func.vinylify;
   
   return func;
