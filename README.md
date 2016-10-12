@@ -10,7 +10,7 @@
 ## Why Gulp-on-Rx
 
 * `gulp.src()` will only watch the initial files and `gulp.watch()` will *run a whole gulp task* when detecting a file changed, which is inefficient. **Gulp-on-Rx** allows you to watch **the initial files and/or the following changes** to pipe file events into the same stream line. 
-* **Gulp-on-Rx** provides `Rx.Observable.prototype.pipe()` method to pipe upstream values into a Node stream and send the output to the downstream `Rx.Observable` (`Rx.Observable` -> `Node.Stream` -> `Rx.Observable`).
+* **Gulp-on-Rx** provides `Rx.Observable.prototype.hook()` method to pipe upstream values into a Node stream and send the output to the downstream `Rx.Observable` (`Rx.Observable` -> `Node.Stream` -> `Rx.Observable`).
 * **Gulp-on-Rx** will always return `Rx.Observable`. You can leverage Rx to compose a complex workflow with *parallel* and/or *sequential* easily.
 
 
@@ -40,17 +40,17 @@ var fsWatch = require('gulp-on-rx').apply(Rx);
 
 gulp.task('scripts', () => {
   return fsWatch.onInitial('client/js/**/*.coffee').vinylify()  // Rx.Observable
-    .pipe(sourcemaps.init())        // Rx.Observable
-      .pipe(coffee())               // Rx.Observable
-      .pipe(uglify())               // Rx.Observable
-      .pipe(concat('all.min.js'))   // Rx.Observable
-    .pipe(sourcemaps.write())       // Rx.Observable
-    .pipe(gulp.dest('build/js'))    // Rx.Observable
+    .hook(sourcemaps.init())        // Rx.Observable
+      .hook(coffee())               // Rx.Observable
+      .hook(uglify())               // Rx.Observable
+      .hook(concat('all.min.js'))   // Rx.Observable
+    .hook(sourcemaps.write())       // Rx.Observable
+    .hook(gulp.dest('build/js'))    // Rx.Observable
     .subscribe();                   // Start running
 });
 ```
 
-or using `.hook()`:
+or using `.hook()` for a whole node stream pipeline:
 
 ```js
 var Rx = require('rxjs');
@@ -79,7 +79,7 @@ From gulp to gulp-on-rx:
 * Replace `gulp.src()` with `fsWatch.onInitial().vinylify()` to watch fs events and map them to [vinyl objects](https://github.com/gulpjs/vinyl). 
     * You can use `fsWatch.onAll()` or `fsWatch.onChange()` to watch whole fs events or only changes.
     * The two-step of `fsWatch.on-().vinylify()` separates the watching and wrapping handler.
-* Still use `.pipe()` to pipe values into a node stream, but it will return an `Rx.Observable` instead of a `Node.Stream`.
+* Use `.hook()` to hook values with a node stream, and it will return an `Rx.Observable` instead of a `Node.Stream`. `.hook()` accept a node stream or a callback to compose a node stream pipeline.
 * Add `.subscribe()` to the last of `Rx.Observable` to start upsteram running.
 
 
@@ -125,7 +125,7 @@ const vinylifyOpt = {
 
 Rx.Observable.fsWatch.onAll('./src/**/.js')
     .vinylify(vinylifyOpt)
-    .pipe(...)...;
+    .hook(...)...;
 ```
 
 The parameter `options` will be passed to [vinyl-fs](https://github.com/gulpjs/vinyl-fs#options) methods to create vinyl objects.
@@ -135,9 +135,9 @@ The parameter `options` will be passed to [vinyl-fs](https://github.com/gulpjs/v
 
 ## `Rx.Observable.prototype.hook(pipelinFn)`
 
-Use a callback to compose a node stream pipeline. The method `.hook` will push `Rx.Observable` values into the node stream pipeline which the block returns, and listen and send the results to downstream observables.
+Use a callback to compose a node stream pipeline. The method `.hook()` will push `Rx.Observable` values into the node stream pipeline which the block returns, and listen and send the results to downstream observables.
 
-```
+```js
 fsWatch.onInitial('client/js/**/*.coffee').vinylify()  // Rx.Observable
   .hook(stream => { // Compose a node stream pipeline
     return stream
@@ -150,21 +150,19 @@ fsWatch.onInitial('client/js/**/*.coffee').vinylify()  // Rx.Observable
   ...
 ```
 
-## `Rx.Observable.prototype.pipe(stream)`
+`.hook()` also accept a stream parameter, it will automatically wrap it into a callback to process. The following is an example to hook just one node stream.
 
-Convenient method to hook just one node stream.
-
-```
+```js
 fsWatch.onInitial('client/js/**/*.coffee').vinylify()  // Rx.Observable
-  .pipe(coffee())  // Use Rx.Observable's pipe()
+  .hook(coffee())  // hook a node steram
   ...
 ```
 
 same as
 
-```
+```js
 fsWatch.onInitial('client/js/**/*.coffee').vinylify()  // Rx.Observable
-  .hook(stream => stream.pipe(coffee()))  // Use Rx.Observable's hook()
+  .hook(stream => stream.pipe(coffee()))   // hook a node stream pipeline with a callback
   ...
 ```
 
