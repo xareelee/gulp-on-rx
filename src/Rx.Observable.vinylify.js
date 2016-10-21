@@ -2,7 +2,7 @@
 const wrapWithVinylFile = require('vinyl-fs/lib/src/wrapWithVinylFile');
 const filterSince = require('vinyl-fs/lib/filterSince');
 const getContents = require('vinyl-fs/lib/src/getContents');
-
+const Vinyl = require('vinyl');
 
 // Use the specific library entity from outside
 function use(Rx) {
@@ -134,7 +134,19 @@ function use(Rx) {
       // Don't pass `read` option on to through2
       const read = extract(options, "read");
     
-      let vinyl$ = source.hook(wrapWithVinylFile(options));
+      // vinyl file with stat for add/change/addDir
+      const vinylWithStat$ = source
+        .filter(f => (f.event === 'add' || f.event === 'change' || f.event === 'addDir'))
+        .hook(wrapWithVinylFile(options))
+      ;
+      
+      // plan vinyl file without stat for unlink/unlinkDir
+      const vinylWithoutStat$ = source
+        .filter(f => (f.event === 'unlink' || f.event === 'unlinkDir'))
+        .map(x => new Vinyl(x))
+      ;
+      
+      let vinyl$ = Rx.Observable.merge(vinylWithStat$, vinylWithoutStat$);
       
       if (options.since != null) {
         vinyl$ = vinyl$.hook(filterSince(options.since));
