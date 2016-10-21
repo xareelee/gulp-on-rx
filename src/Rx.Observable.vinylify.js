@@ -133,29 +133,29 @@ function use(Rx) {
     function mapToVinyl(source, options) {
       // Don't pass `read` option on to through2
       const read = extract(options, "read");
-    
-      // vinyl file with stat for add/change/addDir
-      const vinylWithStat$ = source
-        .filter(f => (f.event === 'add' || f.event === 'change' || f.event === 'addDir'))
-        .hook(wrapWithVinylFile(options))
-      ;
+      const autoconnectSource$ = source.publish().refCount();
       
-      // plan vinyl file without stat for unlink/unlinkDir
-      const vinylWithoutStat$ = source
+      // plain vinyl file without stat for unlink/unlinkDir
+      const vinylWithoutStat$ = autoconnectSource$
         .filter(f => (f.event === 'unlink' || f.event === 'unlinkDir'))
         .map(x => new Vinyl(x))
-      ;
-      
-      let vinyl$ = Rx.Observable.merge(vinylWithStat$, vinylWithoutStat$);
+        ;
+
+      // vinyl file with stat for add/change/addDir
+      let vinylWithStat$ = autoconnectSource$
+        .filter(f => (f.event === 'add' || f.event === 'change' || f.event === 'addDir'))
+        .hook(wrapWithVinylFile(options))
+        ;
       
       if (options.since != null) {
-        vinyl$ = vinyl$.hook(filterSince(options.since));
+        vinylWithStat$ = vinylWithStat$.hook(filterSince(options.since));
+      }
+
+      if (read) {
+        vinylWithStat$ = vinylWithStat$.hook(getContents(options));
       }
       
-      if (read) {
-        vinyl$ = vinyl$.hook(getContents(options));
-      }
-      return vinyl$;
+      return Rx.Observable.merge(vinylWithStat$, vinylWithoutStat$);
     }
   }
 }
