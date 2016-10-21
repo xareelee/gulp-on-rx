@@ -73,17 +73,7 @@ function use(Rx) {
       
       // Replace for keywords
       const validList = ['add', 'change', 'unlink', 'addDir', 'unlinkDir'];
-      if (whitelist.includes('allValid')) {
-        // All valid file/dir event types having a path.
-        whitelist = validList;
-        
-      } else if (whitelist.includes('passAll')) {
-        // Returning a null will allow to pass all event types.
-        whitelist = null;
-        
-      } else {
-        whitelist = intersect(validList, whitelist);
-      }
+      whitelist = whitelist.includes('all') ? validList : intersect(validList, whitelist);
       
       return whitelist;
       
