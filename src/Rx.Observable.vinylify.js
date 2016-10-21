@@ -15,8 +15,6 @@ function use(Rx) {
   // `unlink`, `addDir`, `unlinkDir`, and `all` (default is `['add', 'change']`).
   function vinylify(opt = {}) {
     
-    const debug = (false) ? console.log : (() => {}) ;
-    
     const options = Object.assign({
       // For whitelist filter
       eventFilter: ['add', 'change', 'unlink'],
@@ -30,8 +28,6 @@ function use(Rx) {
       stripBOM: true,
       
     }, opt);
-    
-    debug('vinylify options:', options);
     
     // whitelist: list the fs.events which we allow to pass the filter.
     const eventFilter = extract(options, "eventFilter");
