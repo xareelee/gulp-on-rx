@@ -67,8 +67,8 @@ function use(Rx) {
       
       return basePath;
     }
-
-    return Rx.Observable.create((subscriber) => {
+    
+    const fsWatch$ = Rx.Observable.create((subscriber) => {
       const fsWatcher = chokidar.watch(globs, opt);
       const bindings = eventBindings(subscriber, fileEventWrapper);
       Object.keys(bindings).forEach(event => {
@@ -77,7 +77,16 @@ function use(Rx) {
       return () => {
         fsWatcher.close();
       }
-    }).publish().refCount();
+    })
+    
+    let watchCount = 0;
+    
+    return fsWatch$
+      .map(f => {
+        f.watchCount = ++watchCount;
+        return f;
+      })
+      .publish().refCount();
   }
   
   
