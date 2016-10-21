@@ -77,7 +77,7 @@ function use(Rx) {
       return () => {
         fsWatcher.close();
       }
-    });
+    }).publish().refCount();
   }
   
   
