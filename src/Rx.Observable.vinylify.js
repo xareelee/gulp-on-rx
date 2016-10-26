@@ -3,6 +3,9 @@ const wrapWithVinylFile = require('vinyl-fs/lib/src/wrapWithVinylFile');
 const filterSince = require('vinyl-fs/lib/filterSince');
 const getContents = require('vinyl-fs/lib/src/getContents');
 const Vinyl = require('vinyl');
+const wrapWithVinylFileSync = require('./wrapWithVinylFileSync');
+const filterSinceSync = require('./filterSinceSync');
+const getContentsSync = require('./getContentsSync');
 
 // Use the specific library entity from outside
 function use(Rx) {
@@ -16,6 +19,9 @@ function use(Rx) {
   function vinylify(opt = {}) {
     
     const options = Object.assign({
+      // vinylify asynchronously or not
+      async: true,
+      
       // For whitelist filter
       eventFilter: ['add', 'change', 'unlink'],
       
@@ -119,6 +125,7 @@ function use(Rx) {
     function mapToVinyl(source, options) {
       // Don't pass `read` option on to through2
       const read = extract(options, "read");
+      const async = extract(options, "async");
       const autoconnectSource$ = source.publish().refCount();
       
       // plain vinyl file without stat for unlink/unlinkDir
@@ -129,16 +136,22 @@ function use(Rx) {
 
       // vinyl file with stat for add/change/addDir
       let vinylWithStat$ = autoconnectSource$
-        .filter(f => (f.event === 'add' || f.event === 'change' || f.event === 'addDir'))
-        .hook(wrapWithVinylFile(options))
-        ;
+        .filter(f => (f.event === 'add' || f.event === 'change' || f.event === 'addDir'));
+      
+      vinylWithStat$ = (async) 
+        ? vinylWithStat$.hook(wrapWithVinylFile(options))
+        : vinylWithStat$.map(wrapWithVinylFileSync(options));
       
       if (options.since != null) {
-        vinylWithStat$ = vinylWithStat$.hook(filterSince(options.since));
+        vinylWithStat$ = (async) 
+          ? vinylWithStat$.hook(filterSince(options.since))
+          : vinylWithStat$.map(filterSinceSync(options.since));
       }
 
       if (read) {
-        vinylWithStat$ = vinylWithStat$.hook(getContents(options));
+        vinylWithStat$ = (async) 
+          ? vinylWithStat$.hook(getContents(options))
+          : vinylWithStat$.map(getContentsSync(options));
       }
       
       return Rx.Observable.merge(vinylWithStat$, vinylWithoutStat$);
